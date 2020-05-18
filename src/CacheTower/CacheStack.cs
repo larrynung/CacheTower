@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using CacheTower.Extensions;
+using CacheTower.Internal;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CacheTower
@@ -93,7 +94,7 @@ namespace CacheTower
 		{
 			ThrowIfDisposed();
 
-			var expiry = DateTime.UtcNow + timeToLive;
+			var expiry = DateTimeProvider.Now + timeToLive;
 			var cacheEntry = new CacheEntry<T>(value, expiry);
 			await SetAsync(cacheKey, cacheEntry);
 			return cacheEntry;
@@ -219,7 +220,7 @@ namespace CacheTower
 			if (cacheEntryPoint != default)
 			{
 				var cacheEntry = cacheEntryPoint.CacheEntry;
-				var currentTime = DateTime.UtcNow;
+				var currentTime = DateTimeProvider.Now;
 				if (cacheEntry.GetStaleDate(settings) < currentTime)
 				{
 					if (cacheEntry.Expiry < currentTime)
@@ -369,7 +370,7 @@ namespace CacheTower
 
 				//Last minute check to confirm whether waiting is required
 				var currentEntry = await GetAsync<T>(cacheKey);
-				if (currentEntry != null && currentEntry.GetStaleDate(settings) > DateTime.UtcNow)
+				if (currentEntry != null && currentEntry.GetStaleDate(settings) > DateTimeProvider.Now)
 				{
 					UnlockWaitingTasks(cacheKey, currentEntry);
 					return currentEntry;
