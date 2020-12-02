@@ -209,6 +209,29 @@ namespace CacheTower.Providers.FileSystem
 				}
 			}
 		}
+		public async ValueTask FlushAsync()
+		{
+			await TryLoadManifestAsync();
+
+			foreach (var manifestEntry in CacheManifest.Values)
+			{
+				if (FileLock.TryRemove(manifestEntry.FileName, out var lockObj))
+				{
+					using (await lockObj.WriterLockAsync())
+					{
+						var path = Path.Combine(DirectoryPath, manifestEntry.FileName);
+						if (File.Exists(path))
+						{
+							File.Delete(path);
+						}
+					}
+				}
+			}
+
+			CacheManifest.Clear();
+
+			await SaveManifestAsync();
+		}
 
 		public async ValueTask<CacheEntry<T>> GetAsync<T>(string cacheKey)
 		{
@@ -294,6 +317,7 @@ namespace CacheTower.Providers.FileSystem
 
 			Disposed = true;
 		}
+
 #elif NETSTANDARD2_1
 		public async ValueTask DisposeAsync()
 		{
