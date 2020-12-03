@@ -57,6 +57,8 @@ namespace CacheTower
 				var layer = CacheLayers[i];
 				await layer.FlushAsync();
 			}
+
+			_ = Extensions.OnCacheFlushAsync();
 		}
 
 		public async ValueTask CleanupAsync()

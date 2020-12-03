@@ -15,6 +15,11 @@ namespace CacheTower
 		ValueTask OnValueRefreshAsync(string cacheKey, TimeSpan timeToLive);
 	}
 
+	public interface ICacheFlushExtension : ICacheExtension
+	{
+		ValueTask OnCacheFlushAsync();
+	}
+
 	public interface IRefreshWrapperExtension : ICacheExtension
 	{
 		ValueTask<CacheEntry<T>> RefreshValueAsync<T>(string cacheKey, Func<ValueTask<CacheEntry<T>>> valueProvider, CacheSettings settings);

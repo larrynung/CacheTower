@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace CacheTower.Extensions
 {
-	public class ExtensionContainer : ICacheExtension, IValueRefreshExtension, IRefreshWrapperExtension,
+	public class ExtensionContainer : ICacheExtension, IValueRefreshExtension, ICacheFlushExtension, IRefreshWrapperExtension,
 #if NETSTANDARD2_0
 		IDisposable
 #elif NETSTANDARD2_1
@@ -19,6 +18,8 @@ namespace CacheTower.Extensions
 		private IRefreshWrapperExtension RefreshWrapperExtension { get; }
 		private bool HasValueRefreshExtensions { get; }
 		private IValueRefreshExtension[] ValueRefreshExtensions { get; }
+		private bool HasCacheFlushExtensions { get; }
+		private ICacheFlushExtension[] CacheFlushExtensions { get; }
 		private ICacheExtension[] AllExtensions { get; }
 
 		public ExtensionContainer(ICacheExtension[] extensions)
@@ -26,6 +27,7 @@ namespace CacheTower.Extensions
 			if (extensions != null && extensions.Length > 0)
 			{
 				var valueRefreshExtensions = new List<IValueRefreshExtension>();
+				var cacheFlushExtensions = new List<ICacheFlushExtension>();
 
 				foreach (var extension in extensions)
 				{
@@ -40,9 +42,16 @@ namespace CacheTower.Extensions
 						HasValueRefreshExtensions = true;
 						valueRefreshExtensions.Add(valueRefreshExtension);
 					}
+
+					if (extension is ICacheFlushExtension cacheFlushExtension)
+					{
+						HasCacheFlushExtensions = true;
+						cacheFlushExtensions.Add(cacheFlushExtension);
+					}
 				}
 
 				ValueRefreshExtensions = valueRefreshExtensions.ToArray();
+				CacheFlushExtensions = cacheFlushExtensions.ToArray();
 				AllExtensions = extensions;
 			}
 			else
@@ -87,6 +96,18 @@ namespace CacheTower.Extensions
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public async ValueTask OnCacheFlushAsync()
+		{
+			if (HasCacheFlushExtensions)
+			{
+				foreach (var extension in CacheFlushExtensions)
+				{
+					await extension.OnCacheFlushAsync();
+				}
+			}
+		}
+
 #if NETSTANDARD2_0
 		public void Dispose()
 		{
@@ -114,6 +135,7 @@ namespace CacheTower.Extensions
 
 			Disposed = true;
 		}
+
 #elif NETSTANDARD2_1
 		public async ValueTask DisposeAsync()
 		{
